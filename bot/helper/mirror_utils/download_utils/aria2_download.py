@@ -1,5 +1,5 @@
 from time import sleep, time
-from os import remove
+from os import remove, path as ospath
 
 from bot import aria2, download_dict_lock, download_dict, STOP_DUPLICATE, BASE_URL, LOGGER
 from bot.helper.mirror_utils.upload_utils.gdriveTools import GoogleDriveHelper
@@ -100,9 +100,10 @@ def __onBtDownloadComplete(api, gid):
         if listener.select:
             res = download.files
             for file_o in res:
-                if not file_o.selected:
+                f_path = file_o.path
+                if not file_o.selected and ospath.exists(f_path):
                     try:
-                        remove(file_o.path)
+                        remove(f_path)
                     except:
                         pass
             clean_unwanted(download.dir)
@@ -111,6 +112,8 @@ def __onBtDownloadComplete(api, gid):
                 api.set_options({'max-upload-limit': '0'}, [download])
             except Exception as e:
                 LOGGER.error(f'{e} You are not able to seed because you added global option seed-time=0 without adding specific seed_time for this torrent')
+        else:
+            api.client.force_pause(gid)
         listener.onDownloadComplete()
         if listener.seed:
             with download_dict_lock:
